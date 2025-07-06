@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尿路結石生成器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for subtle sounds -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics and responsiveness */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #e6e6e6; /* New light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 90%; /* Reverted max-width */
+            width: 1200px; /* Reverted width */
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Reverted border-radius */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* Reverted shadow */
+            padding: 2rem; /* Reverted padding */
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; /* Reverted gap */
+            box-sizing: border-box;
+        }
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+        }
+        .controls-panel {
+            flex: 1;
+            padding: 1rem; /* Reduced padding for the framed panel */
+            border-radius: 1rem; /* Rounded corners for the framed panel */
+            background-color: #f8fafc; /* Lighter background for panels */
+            border: 1px solid #cbd5e1; /* Added border to frame the section */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow for the framed panel */
+            min-width: 280px; /* Reduced min-width for the controls panel */
+            max-width: 450px; /* Added max-width to keep it compact */
+        }
+        .simulation-panel {
+            flex: 1;
+            padding: 1rem; /* Reverted padding */
+            border-radius: 1rem; /* Reverted border-radius */
+            background-color: #e0f2fe; /* Changed to light blue */
+            box-shadow: none; /* Removed inner shadow for panels */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px; /* Reverted min-height */
+        }
+        .slider-group {
+            margin-bottom: 1.5rem; /* Reverted margin */
+            padding: 0; /* Removed padding for individual slider groups */
+            background-color: transparent; /* Removed background for individual slider groups */
+            border-radius: 0; /* Removed border-radius */
+            box-shadow: none; /* Removed shadow for individual slider groups */
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px; /* Reverted track height */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.9;
+            cursor: pointer;
+            background:
+                repeating-linear-gradient(to right,
+                    white 0px,
+                    white 1px,
+                    transparent 1px,
+                    transparent 10%
+                ),
+                linear-gradient(to right, var(--track-bg-color), var(--track-bg-color));
+
+            background-size: 10% 100%, 100% 100%;
+            background-position: 0 0, 0 0;
+            background-repeat: repeat-x, no-repeat;
+            transition: background 0.3s ease;
+        }
+
+        /* Styling for the slider thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px; /* Reverted thumb size */
+            height: 20px; /* Reverted thumb size */
+            border-radius: 50%;
+            background: #3b82f6; /* Blue thumb */
+            cursor: pointer; /* Reverted cursor */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reverted shadow */
+            margin-top: -6px; /* Reverted margin-top */
+            transition: none; /* Removed transition */
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: pointer; /* Reverted cursor */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reverted shadow */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px; /* Reverted thumb size */
+            height: 20px; /* Reverted thumb size */
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer; /* Reverted cursor */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reverted shadow */
+            transition: none; /* Removed transition */
+        }
+        input[type="range"]::-moz-range-thumb:active {
+            cursor: pointer; /* Reverted cursor */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reverted shadow */
+        }
+
+
+        .stone-display {
+            width: 150px; /* Reverted size */
+            height: 150px; /* Reverted size */
+            border-radius: 50%;
+            background-color: #e2e8f0; /* Default background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: none; /* Removed inner and outer shadow */
+        }
+        .stone {
+            width: 0px;
+            height: 0px;
+            background-color: #f97316; /* Orange stone color */
+            border-radius: 50%;
+            transition: all 0.3s ease-out; /* Reverted transition */
+            transform-origin: center center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Reverted shadow */
+        }
+        .reset-button {
+            background-color: #ef4444; /* Reverted to solid red */
+            color: white;
+            padding: 0.75rem 1.5rem; /* Reverted padding */
+            border-radius: 0.75rem; /* Reverted border-radius */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out; /* Reverted transition */
+            margin-top: 1.5rem; /* Reverted margin-top */
+            width: fit-content;
+            align-self: center;
+            box-shadow: none; /* Removed button shadow */
+            transform: none; /* Removed transform */
+        }
+        .reset-button:hover {
+            background-color: #dc2626;
+            box-shadow: none; /* Removed button shadow */
+            transform: none; /* Removed transform */
+        }
+        .reset-button:active {
+            transform: none; /* Removed transform */
+            box-shadow: none; /* Removed button shadow */
+        }
+
+        .disclaimer, .references {
+            margin-top: 2rem; /* Reverted margin-top */
+            padding: 1rem; /* Reverted padding */
+            background-color: #fffbeb; /* Light yellow background */
+            border-left: 4px solid #f59e0b; /* Reverted border */
+            border-radius: 0.5rem; /* Reverted border-radius */
+            color: #78350f; /* Darker orange text */
+            font-size: 0.9rem; /* Reverted font-size */
+            line-height: normal; /* Reverted line-height */
+        }
+        .references {
+            background-color: #e0f2fe; /* Light blue for references */
+            border-left-color: #38bdf8; /* Blue border */
+            color: #0c4a6e; /* Darker blue text */
+        }
+        .references ul {
+            list-style-type: disc;
+            margin-left: 1.25rem; /* Reverted margin */
+        }
+        .references li {
+            margin-bottom: 0; /* Reverted margin */
+        }
+
+        .result-disclaimer {
+            font-size: 1rem; /* Kept increased font size */
+            color: #ef4444; /* Red text for emphasis */
+            margin-top: 1rem; /* Kept increased margin above it */
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem; /* Kept increased space between icon and text */
+            font-weight: bold;
+        }
+        .warning-icon {
+            width: 1.8em; /* Kept increased size for the icon */
+            height: 1.8em; /* Kept increased size for the icon */
+            fill: #ef4444; /* Red color for the icon */
+            flex-shrink: 0;
+        }
+        .label {
+            font-size: 1rem; /* Reverted font size */
+            color: #707070; /* Reverted color to a standard gray */
+        }
+        .value-display {
+            font-size: 1rem; /* Reverted font size */
+            font-weight: normal; /* Reverted font weight */
+            color: #2563eb; /* Reverted color */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Control Panel -->
+        <div id="controlsPanel" class="controls-panel flex flex-col gap-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">結石生成模擬參數</h2>
+
+            <div class="grid grid-cols-1 gap-x-4 gap-y-4"> <!-- Adjusted grid columns for smaller width -->
+                <!-- Urine Volume -->
+                <div class="slider-group">
+                    <label for="urineVolume" class="block label mb-2">尿液量 (公升/天): <span id="urineVolumeValue" class="value-display">2.5</span></label>
+                    <input type="range" id="urineVolume" min="1.0" max="3.0" step="0.1" value="2.5" class="w-full">
+                </div>
+
+                <!-- Calcium Concentration -->
+                <div class="slider-group">
+                    <label for="calciumConcentration" class="block label mb-2">鈣質濃度 (單位): <span id="calciumConcentrationValue" class="value-display">5</span></label>
+                    <input type="range" id="calciumConcentration" min="1" max="10" step="1" value="5" class="w-full">
+                </div>
+
+                <!-- Oxalate Concentration -->
+                <div class="slider-group">
+                    <label for="oxalateConcentration" class="block label mb-2">草酸濃度 (單位): <span id="oxalateConcentrationValue" class="value-display">5</span></label>
+                    <input type="range" id="oxalateConcentration" min="1" max="10" step="1" value="5" class="w-full">
+                </div>
+
+                <!-- Uric Acid Concentration -->
+                <div class="slider-group">
+                    <label for="uricAcidConcentration" class="block label mb-2">尿酸濃度 (單位): <span id="uricAcidConcentrationValue" class="value-display">5</span></label>
+                    <input type="range" id="uricAcidConcentration" min="1" max="10" step="1" value="5" class="w-full">
+                </div>
+
+                <!-- Phosphate Concentration -->
+                <div class="slider-group">
+                    <label for="phosphateConcentration" class="block label mb-2">磷酸鹽濃度 (單位): <span id="phosphateConcentrationValue" class="value-display">5</span></label>
+                    <input type="range" id="phosphateConcentration" min="1" max="10" step="1" value="5" class="w-full">
+                </div>
+
+                <!-- Ammonium Magnesium Concentration -->
+                <div class="slider-group">
+                    <label for="ammoniumMagnesiumConcentration" class="block label mb-2">銨鎂濃度 (單位): <span id="ammoniumMagnesiumConcentrationValue" class="value-display">0</span></label>
+                    <input type="range" id="ammoniumMagnesiumConcentration" min="0" max="10" step="1" value="0" class="w-full">
+                </div>
+
+                <!-- Urine PH -->
+                <div class="slider-group">
+                    <label for="urinePH" class="block label mb-2">尿液酸鹼值 (pH): <span id="urinePHValue" class="value-display">6.0</span></label>
+                    <input type="range" id="urinePH" min="5.0" max="8.0" step="0.1" value="6.0" class="w-full">
+                </div>
+
+                <!-- Citrate Level -->
+                <div class="slider-group">
+                    <label for="citrateLevel" class="block label mb-2">檸檬酸鹽水平 (單位): <span id="citrateLevelValue" class="value-display">7</span></label>
+                    <input type="range" id="citrateLevel" min="1" max="10" step="1" value="7" class="w-full">
+                </div>
+
+                <!-- Infection Presence -->
+                <div class="slider-group">
+                    <label for="infectionPresence" class="block label mb-2">感染存在 (影響程度): <span id="infectionPresenceValue" class="value-display">0</span></label>
+                    <input type="range" id="infectionPresence" min="0" max="10" step="1" value="0" class="w-full">
+                </div>
+            </div>
+            <button id="resetButton" class="reset-button">重置參數</button>
+        </div>
+
+        <!-- Simulation Result Panel -->
+        <div class="simulation-panel flex flex-col items-center justify-center gap-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">結石模擬</h2>
+            <div class="stone-display">
+                <div id="stone" class="stone"></div>
+            </div>
+            <p id="stoneStatus" class="text-lg font-semibold text-gray-700 text-center mt-4"></p>
+            <p id="stoneTypeHint" class="text-md text-gray-600 text-center"></p>
+            <!-- Added disclaimer here with red text and warning icon -->
+            <p class="result-disclaimer">
+                <svg class="warning-icon" viewBox="0 0 24 24">
+                    <path d="M12 1L2 22h20L12 1zm1 16h-2v-2h2v2zm0-4h-2V8h2v5z"/>
+                </svg>
+                僅供參考，本模擬結果不能替代專業醫療建議。
+            </p>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <p class="font-bold mb-1">免責聲明：</p>
+            <p>本模擬器僅用於教育目的，旨在說明尿路結石形成的一般原理。人體結石生成極為複雜，不僅受本身疾病影響，還與生活工作型態、基因等因素密切相關，且無法完整羅列所有可能原因，因此本模擬器的結果不一定與實際情況完全類似。</p>
+            <p>它不能替代專業醫療建議、診斷或治療。請勿根據本模擬器的結果自行診斷或治療任何健康問題。如有醫療疑慮，請務必諮詢合格的醫療專業人員。</p>
+        </div>
+
+        <!-- References -->
+        <div class="references">
+            <p class="font-bold mb-1">參考文獻：</p>
+            <ul>
+                <li>Coe, F. L., Evan, A., & Worcester, E. (2005). Kidney stone disease. *The Journal of Clinical Investigation*, 115(10), 2598-2608.</li>
+                <li>Fink, H. A., et al. (2018). Medical Management of Kidney Stones: A Systematic Review. *Annals of Internal Medicine*, 168(11), 803-815.</li>
+                <li>Moe, O. W. (2006). Kidney stones: pathophysiology and medical management. *The Lancet*, 367(9507), 333-344.</li>
+                <li>Scales, C. D., et al. (2012). Prevalence of kidney stones in the United States. *European Urology*, 62(1), 160-165.</li>
+            </ul>
+            <p class="mt-2 text-sm">請注意，上述參考文獻僅為示例，本模擬器的邏輯為簡化模型，不完全依據任何單一文獻。</p>
+        </div>
+    </div>
+
+    <script>
+        // Get elements
+        const urineVolumeInput = document.getElementById('urineVolume');
+        const calciumConcentrationInput = document.getElementById('calciumConcentration');
+        const oxalateConcentrationInput = document.getElementById('oxalateConcentration');
+        const uricAcidConcentrationInput = document.getElementById('uricAcidConcentration');
+        const phosphateConcentrationInput = document.getElementById('phosphateConcentration');
+        const ammoniumMagnesiumConcentrationInput = document.getElementById('ammoniumMagnesiumConcentration');
+        const urinePHInput = document.getElementById('urinePH');
+        const citrateLevelInput = document.getElementById('citrateLevel');
+        const infectionPresenceInput = document.getElementById('infectionPresence');
+
+        const urineVolumeValue = document.getElementById('urineVolumeValue');
+        const calciumConcentrationValue = document.getElementById('calciumConcentrationValue');
+        const oxalateConcentrationValue = document.getElementById('oxalateConcentrationValue');
+        const uricAcidConcentrationValue = document.getElementById('uricAcidConcentrationValue');
+        const phosphateConcentrationValue = document.getElementById('phosphateConcentrationValue');
+        const ammoniumMagnesiumConcentrationValue = document.getElementById('ammoniumMagnesiumConcentrationValue');
+        const urinePHValue = document.getElementById('urinePHValue');
+        const citrateLevelValue = document.getElementById('citrateLevelValue');
+        const infectionPresenceValue = document.getElementById('infectionPresenceValue');
+
+        const stoneElement = document.getElementById('stone');
+        const stoneStatusElement = document.getElementById('stoneStatus');
+        const stoneTypeHintElement = document.getElementById('stoneTypeHint');
+        const resetButton = document.getElementById('resetButton');
+        const controlsPanel = document.getElementById('controlsPanel'); // Get the controls panel element
+
+        // Initialize Tone.js MetalSynth for subtle knob sound feedback
+        let metalSynth;
+        let audioContextInitialized = false; // Flag to track if AudioContext has been started
+
+        // Function to initialize audio context and synth
+        function initializeAudio() {
+            if (!audioContextInitialized) {
+                // Tone.js requires a user gesture to start its audio context.
+                // We will attempt to start it on the first relevant interaction.
+                try {
+                    if (Tone.context.state !== 'running') {
+                        Tone.start().then(() => {
+                            console.log('AudioContext resumed successfully');
+                            audioContextInitialized = true;
+                        }).catch(e => console.error('Error starting AudioContext:', e));
+                    } else {
+                        audioContextInitialized = true;
+                    }
+
+                    if (!metalSynth) {
+                        metalSynth = new Tone.MetalSynth({
+                            frequency: 100, // Low frequency for a subtle click
+                            envelope: {
+                                attack: 0.001,
+                                decay: 0.05, // Short decay for a quick sound
+                                sustain: 0.0,
+                                release: 0.05
+                            },
+                            harmonicity: 3.1, // Adjust for metallic timbre
+                            modulationIndex: 8,
+                            resonance: 2000,
+                            octaves: 0.5,
+                            volume: -20 // Keep volume low for subtlety
+                        }).toDestination();
+                    }
+                } catch (e) {
+                    console.error("Failed to initialize Tone.js:", e);
+                }
+            }
+        }
+
+        /**
+         * Plays a subtle knob turning sound.
+         */
+        function playKnobSound() {
+            if (audioContextInitialized && metalSynth) {
+                // Trigger the synth. MetalSynth doesn't take notes, just triggers its internal sound.
+                metalSynth.triggerAttack();
+            }
+        }
+
+        /**
+         * Calculates a risk percentage for a given slider value.
+         * @param {number} value - The current value of the slider.
+         * @param {number} min - The minimum value of the slider.
+         * @param {number} max - The maximum value of the slider.
+         * @param {boolean} isInverted - True if lower values mean higher risk (e.g., urine volume).
+         * @param {string} type - The type of parameter ('pH' for special handling).
+         * @returns {number} The risk percentage (0-100).
+         */
+        function calculateRiskPercentage(value, min, max, isInverted = false, type = '') {
+            let percentage;
+            if (type === 'pH') {
+                // pH has a U-shaped risk: extremes are high risk, middle is low risk.
+                const pH_ideal_min = 6.0;
+                const pH_ideal_max = 6.5;
+                const pH_center = (pH_ideal_min + pH_ideal_max) / 2; // 6.25
+                const max_deviation = Math.max(pH_center - min, max - pH_center); // Max deviation from center to either end
+                const current_deviation = Math.abs(value - pH_center);
+                percentage = (current_deviation / max_deviation) * 100;
+            } else {
+                if (isInverted) {
+                    percentage = ((max - value) / (max - min)) * 100;
+                } else {
+                    percentage = ((value - min) / (max - min)) * 100;
+                }
+            }
+            return Math.max(0, Math.min(100, percentage)); // Clamp between 0 and 100
+        }
+
+        /**
+         * Returns an HSL color string based on a risk percentage.
+         * Transitions from light green to green (0-33%), light blue to blue (34-66%),
+         * and light red to red (67-100%).
+         * Increased contrast: lightness goes from 95% (very light) to 35% (solid color).
+         * @param {number} percentage - The risk percentage (0-100).
+         * @returns {string} An HSL color string (e.g., "hsl(120, 100%, 70%)").
+         */
+        function getRiskColorHSL(percentage) {
+            let h, s, l;
+            const lightnessStart = 95; // Very light for low risk/start of range
+            const lightnessEnd = 35;   // Deeper color for high risk/end of range
+
+            if (percentage <= 33) { // Green range (輕微)
+                h = 120; // Green hue
+                s = 100; // Full saturation
+                l = lightnessStart - (percentage / 33) * (lightnessStart - lightnessEnd);
+            } else if (percentage <= 66) { // Blue range (中度)
+                const adjustedPercentage = percentage - 33; // Normalize to 0-33 for blue range
+                h = 210; // Blue hue
+                s = 100;
+                l = lightnessStart - (adjustedPercentage / 33) * (lightnessStart - lightnessEnd);
+            } else { // Red range (重度)
+                const adjustedPercentage = percentage - 66; // Normalize to 0-34 for red range
+                h = 0; // Red hue
+                s = 100;
+                l = lightnessStart - (adjustedPercentage / 34) * (lightnessStart - lightnessEnd);
+            }
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        // Function to update the simulation based on input values
+        function updateSimulation() {
+            const urineVolume = parseFloat(urineVolumeInput.value);
+            const calciumConcentration = parseInt(calciumConcentrationInput.value);
+            const oxalateConcentration = parseInt(oxalateConcentrationInput.value);
+            const uricAcidConcentration = parseInt(uricAcidConcentrationInput.value);
+            const phosphateConcentration = parseInt(phosphateConcentrationInput.value);
+            const ammoniumMagnesiumConcentration = parseInt(ammoniumMagnesiumConcentrationInput.value);
+            const urinePH = parseFloat(urinePHInput.value);
+            const citrateLevel = parseInt(citrateLevelInput.value);
+            const infectionPresence = parseInt(infectionPresenceInput.value);
+
+            // Update displayed values
+            urineVolumeValue.textContent = urineVolume.toFixed(1);
+            calciumConcentrationValue.textContent = calciumConcentration;
+            oxalateConcentrationValue.textContent = oxalateConcentration;
+            uricAcidConcentrationValue.textContent = uricAcidConcentration;
+            phosphateConcentrationValue.textContent = phosphateConcentration;
+            ammoniumMagnesiumConcentrationValue.textContent = ammoniumMagnesiumConcentration;
+            urinePHValue.textContent = urinePH.toFixed(1);
+            citrateLevelValue.textContent = citrateLevel;
+            infectionPresenceValue.textContent = infectionPresence;
+
+            // Update slider colors based on individual risk
+            urineVolumeInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(urineVolume, 1.0, 3.0, true)));
+            calciumConcentrationInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(calciumConcentration, 1, 10)));
+            oxalateConcentrationInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(oxalateConcentration, 1, 10)));
+            uricAcidConcentrationInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(uricAcidConcentration, 1, 10)));
+            phosphateConcentrationInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(phosphateConcentration, 1, 10)));
+            ammoniumMagnesiumConcentrationInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(ammoniumMagnesiumConcentration, 0, 10)));
+            urinePHInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(urinePH, 5.0, 8.0, false, 'pH')));
+            citrateLevelInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(citrateLevel, 1, 10, true))); // Lower citrate = higher risk
+            infectionPresenceInput.style.setProperty('--track-bg-color', getRiskColorHSL(calculateRiskPercentage(infectionPresence, 0, 10)));
+
+
+            let stoneRisk = 0; // Overall risk for stone formation
+            let stoneType = "未知結石"; // Default stone type
+
+            // Calculate base risk from all parameters (this part remains largely the same)
+            stoneRisk += (11 - urineVolume) * 2; // Lower volume, higher risk
+            stoneRisk += calciumConcentration * 1.0;
+            stoneRisk += oxalateConcentration * 1.0;
+            stoneRisk += uricAcidConcentration * 1.0;
+            stoneRisk += phosphateConcentration * 1.0;
+            stoneRisk += ammoniumMagnesiumConcentration * 1.0;
+            stoneRisk += infectionPresence * 2;
+            stoneRisk -= citrateLevel * 3; // Citrate is an inhibitor
+
+            // pH risk (U-shaped: extremes are high risk, middle is low risk)
+            const pH_ideal_min = 6.0;
+            const pH_ideal_max = 6.5;
+            if (urinePH < pH_ideal_min) {
+                stoneRisk += (pH_ideal_min - urinePH) * 5; // Stronger impact for acidic pH
+            } else if (urinePH > pH_ideal_max) {
+                stoneRisk += (urinePH - pH_ideal_max) * 5; // Stronger impact for alkaline pH
+            }
+
+            // --- Evaluate Tendencies for each primary stone type ---
+            // Define criteria for a "strong tendency" for each type
+            let isCaOxTendency = (calciumConcentration >= 6 && oxalateConcentration >= 6);
+            let isUricAcidTendency = (uricAcidConcentration >= 7 && urinePH <= 6.0 && urineVolume <= 1.7);
+            let isCaPhosTendency = (calciumConcentration >= 7 && phosphateConcentration >= 7 && urinePH >= 6.8);
+            let isStruviteTendency = (infectionPresence >= 5 && ammoniumMagnesiumConcentration >= 6 && phosphateConcentration >= 6 && urinePH >= 7.0);
+
+            let activeTendencies = 0;
+            let mixedComponents = [];
+
+            if (isCaOxTendency) {
+                activeTendencies++;
+                mixedComponents.push("草酸鈣");
+            }
+            if (isUricAcidTendency) {
+                activeTendencies++;
+                mixedComponents.push("尿酸");
+            }
+            if (isCaPhosTendency) {
+                activeTendencies++;
+                mixedComponents.push("磷酸鈣");
+            }
+            if (isStruviteTendency) {
+                activeTendencies++;
+                mixedComponents.push("感染性 (Struvite)");
+            }
+
+            // --- Determine Final Stone Type based on Tendencies ---
+
+            // If multiple strong tendencies, it's a mixed type
+            if (activeTendencies >= 2) {
+                stoneType = "混合型結石";
+                if (mixedComponents.length > 0) {
+                    stoneType += " (含 " + mixedComponents.join("、") + " 成分)";
+                }
+                // Increase risk for mixed types based on overall component levels
+                stoneRisk += (calciumConcentration + oxalateConcentration + uricAcidConcentration + phosphateConcentration + ammoniumMagnesiumConcentration + infectionPresence) * 0.7;
+            }
+            // Otherwise, check for single strong tendencies
+            else if (isStruviteTendency) {
+                stoneType = "磷酸銨鎂結石 (Struvite stones) (感染性)";
+                stoneRisk += 35; // Specific risk for pure struvite
+            } else if (isUricAcidTendency) {
+                stoneType = "尿酸結石";
+                stoneRisk += 30; // Specific risk for pure uric acid
+            } else if (isCaPhosTendency) {
+                stoneType = "磷酸鈣結石";
+                stoneRisk += 20; // Specific risk for pure calcium phosphate
+                if (urinePH > 7.0 && calciumConcentration > 8) { // More alkaline and higher calcium for apatite
+                    stoneType += " (碳酸磷灰石 - carbonated-apatite)";
+                } else if (urinePH >= 6.8 && urinePH <= 7.0 && phosphateConcentration > 8) { // Slightly less alkaline, higher phosphate for brushite
+                    stoneType += " (雙水磷酸氫鈣 - brushite)";
+                } else {
+                    stoneType += " (碳酸磷灰石或雙水磷酸氫鈣)";
+                }
+            } else if (isCaOxTendency) {
+                // Determine specific calcium oxalate type and set stoneType directly
+                if (urinePH <= 6.0 && oxalateConcentration > 7) {
+                    stoneType = "單水草酸鈣結石 (whewellite)";
+                } else if (urinePH > 6.0 && oxalateConcentration <= 7) {
+                    stoneType = "雙水草酸鈣結石 (weddellite)";
+                } else {
+                    stoneType = "草酸鈣結石 (單水草酸鈣或雙水草酸鈣)"; // Always specify the sub-type or potential mix
+                }
+                stoneRisk += 15; // Specific risk for pure calcium oxalate
+            } else {
+                // If no strong tendencies, fall back to a general mixed check or unknown
+                let generalMixedFactorScore = 0;
+                if (urineVolume < 1.8) generalMixedFactorScore += 2;
+                if (calciumConcentration > 5) generalMixedFactorScore += 1;
+                if (oxalateConcentration > 5) generalMixedFactorScore += 1;
+                if (uricAcidConcentration > 5) generalMixedFactorScore += 1;
+                if (phosphateConcentration > 5) generalMixedFactorScore += 1;
+                if (ammoniumMagnesiumConcentration > 3) generalMixedFactorScore += 1;
+                if (urinePH > 6.5 || urinePH < 6.0) generalMixedFactorScore += 2;
+                if (infectionPresence > 2) generalMixedFactorScore += 2;
+                if (citrateLevel < 5) generalMixedFactorScore += 1;
+
+                if (generalMixedFactorScore >= 5) {
+                    stoneType = "混合型結石 (多重因素影響)";
+                    stoneRisk += generalMixedFactorScore * 3;
+                } else {
+                    stoneType = "未知結石";
+                }
+            }
+
+            // Clamp stoneRisk to a reasonable range (e.g., 0 to 100)
+            stoneRisk = Math.max(0, Math.min(100, stoneRisk));
+
+            // Calculate stone size based on risk (e.g., 0 to 120px diameter for visual)
+            let stoneSize;
+            if (stoneRisk < 20) { // If risk is "極低", show no stone
+                stoneSize = 0;
+            } else {
+                stoneSize = stoneRisk * 1.2; // Max 120px for visual representation
+            }
+            // Ensure it doesn't grow too large visually
+            stoneSize = Math.min(120, stoneSize);
+
+
+            // Update stone visual
+            stoneElement.style.width = `${stoneSize}px`;
+            stoneElement.style.height = `${stoneSize}px`;
+
+            // Update status text
+            let statusText = "";
+            let statusColor = "text-gray-700"; // Default color
+
+            if (stoneRisk < 20) {
+                statusText = "結石形成風險極低。";
+                statusColor = "text-green-600";
+            } else if (stoneRisk < 50) {
+                statusText = "結石形成風險較低。";
+                statusColor = "text-blue-600";
+            } else if (stoneRisk < 75) {
+                statusText = "結石形成風險中等。";
+                statusColor = "text-yellow-600";
+            } else {
+                statusText = "結石形成風險高！";
+                statusColor = "text-red-600";
+            }
+
+            stoneStatusElement.textContent = statusText;
+            stoneStatusElement.className = `text-lg font-semibold text-center mt-4 ${statusColor}`;
+
+            // Update stone type hint - now stoneType directly contains the full description
+            stoneTypeHintElement.textContent = `根據參數，可能形成的結石類型：${stoneType}`;
+        }
+
+        // Add event listeners to all sliders
+        const sliders = document.querySelectorAll('input[type="range"]');
+        sliders.forEach(slider => {
+            slider.addEventListener('input', () => {
+                initializeAudio(); // Ensure audio context is started on first interaction
+                updateSimulation();
+                playKnobSound(); // Play knob sound on slider input
+            });
+            // Also ensure audio context is initialized on mousedown/touchstart for broader compatibility
+            slider.addEventListener('mousedown', initializeAudio, { once: true });
+            slider.addEventListener('touchstart', initializeAudio, { once: true });
+        });
+
+        // Add event listener to reset button to initialize audio as well
+        resetButton.addEventListener('click', () => {
+            initializeAudio(); // Ensure audio context is started on first interaction
+            // Set default values that result in low stone risk
+            urineVolumeInput.value = 2.5; // Increased urine volume
+            calciumConcentrationInput.value = 5;
+            oxalateConcentrationInput.value = 5;
+            uricAcidConcentrationInput.value = 5;
+            phosphateConcentrationInput.value = 5;
+            ammoniumMagnesiumConcentrationInput.value = 0;
+            urinePHInput.value = 6.0;
+            citrateLevelInput.value = 7; // Increased citrate level
+            infectionPresenceInput.value = 0;
+            updateSimulation(); // Update display after resetting
+            playKnobSound(); // Play sound on reset
+
+            // Scroll to the controls panel
+            controlsPanel.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Initial simulation update on page load
+        window.onload = updateSimulation;
+    </script>
+</body>
+</html>
+
